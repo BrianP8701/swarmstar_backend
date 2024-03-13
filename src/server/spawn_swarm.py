@@ -7,7 +7,7 @@ import os
 from swarmstar import spawn_swarm as swarmstar_spawn_swarm
 from swarmstar.types import SwarmOperation
 
-from src.utils.database import get_swarm_config, get_user_swarm
+from src.utils.database import get_swarm_config, get_user_swarm, update_user_swarm, get_swarm_operation
 from src.server.swarm_operation_queue import swarm_operation_queue
 
 
@@ -32,8 +32,12 @@ def resume_swarm(swarm_id: str):
     """
     try:
         user_swarm = get_user_swarm(swarm_id)
-        for operation in user_swarm.queued_swarm_operations:
+        swarm_config = get_swarm_config(swarm_id)
+        update_user_swarm(swarm_id, {"active": True})
+        for operation in user_swarm.queued_swarm_operations_ids:
+            operation = get_swarm_operation(swarm_config, operation)
             swarm_operation_queue.put_nowait((swarm_id, operation))
+        update_user_swarm(swarm_id, {"queued_swarm_operations_ids": []})
     except Exception as e:
         print(e)
 

@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
 
+from src.database.mongodb_wrapper import MongoDBWrapper
+
 from src.client.authentication.login import router as login_router
 from src.client.authentication.auth_token import router as auth_token_router
 from src.client.authentication.signup import router as signup_router
@@ -67,6 +69,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+kv_database = MongoDBWrapper("mongodb://localhost:27017/", "swarmstar", "kv_store")
 
 app.include_router(login_router)
 app.include_router(auth_token_router)

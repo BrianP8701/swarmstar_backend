@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from src.utils.security import validate_token
 from src.utils.database import get_user_swarm
-from src.utils.database import resume_swarm as server_resume_swarm
+from src.server.spawn_swarm import resume_swarm as server_resume_swarm
 from src.types import UserSwarm
 
 router = APIRouter()

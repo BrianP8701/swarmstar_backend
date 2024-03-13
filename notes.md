@@ -7,3 +7,5 @@ uvicorn main:app --reload --port 5000
 
 
 pytest -m client_non_blocking
+
+poetry run uvicorn main:app --reload --port 5000

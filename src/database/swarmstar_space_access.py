@@ -49,24 +49,31 @@ def _convert_node_to_d3_tree_node_recursive(swarm_config: SwarmConfig, node: Swa
     return node_representation
 
 def duplicate_swarm(old_swarm_id: str, copied_swarm_id):
+    """
+        This function copies a swarm and all its data to a new swarm id.
+        It replicates every node and operation with new UUIDs.
+    """
     swarm_config = get_swarm_config(old_swarm_id)
-    swarm_state = get_swarm_state(swarm_config)
-    swarm_history = get_swarm_history(swarm_config)
+    old_swarm_state = get_swarm_state(swarm_config)
+    old_swarm_history = get_swarm_history(swarm_config)
 
     swarm_config.id = copied_swarm_id
 
     add_kv(swarmstar_space_db_name, "config", copied_swarm_id, swarm_config.model_dump())
-    add_kv(swarmstar_space_db_name, "swarm_state", copied_swarm_id, {"data": swarm_state})
-    add_kv(swarmstar_space_db_name, "swarm_history", copied_swarm_id, {"data": swarm_history})
-
-    for node_id in swarm_state:
+    
+    swarm_state = []
+    for node_id in old_swarm_state:
         node = get_swarm_node(swarm_config, node_id)
         node.id = generate_uuid("node")
+        swarm_state.append(node.id)
         add_kv(swarmstar_space_db_name, "swarm_nodes", node.id, node.model_dump())
-
-    for operation_id in swarm_history:
+    add_kv(swarmstar_space_db_name, "swarm_state", copied_swarm_id, {"data": swarm_state})
+    
+    swarm_history = []
+    for operation_id in old_swarm_history:
         operation = get_swarm_operation(swarm_config, operation_id)
         operation.id = generate_uuid("operation")
         add_kv(swarmstar_space_db_name, "swarm_operations", operation.id, operation.model_dump())
+    add_kv(swarmstar_space_db_name, "swarm_history", copied_swarm_id, {"data": swarm_history})
 
     append_to_list(swarmstar_space_db_name, "admin", "swarms", "data", copied_swarm_id)
