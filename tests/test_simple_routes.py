@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from main import app
 
 from src.types import UserSwarm, User
-from src.utils.security import validate_token
+from app.utils.security import validate_token
 
 client = TestClient(app)
 

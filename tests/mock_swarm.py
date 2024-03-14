@@ -5,10 +5,10 @@ import time
 
 from swarmstar.models import UserCommunicationOperation, SpawnOperation, TerminationOperation, NodeEmbryo
 
-from src.server.swarm_operation_queue import swarm_operation_queue
-from src.utils.database import create_empty_user_swarm, get_swarm_state, get_swarm_config, get_swarm_node
+from app.core.swarm_operation_queue import swarm_operation_queue
+from app.utils.database import create_empty_user_swarm, get_swarm_state, get_swarm_config, get_swarm_node
 from src.types import UserSwarm, User
-from src.utils.security import validate_token
+from app.utils.security import validate_token
 
 client = TestClient(app)
 

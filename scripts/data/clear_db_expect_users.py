@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from swarmstar.utils.data.kv_operations.mongodb import mongodb_set_kv
+
 def clear_swarm_space(mongodb_uri: str) -> None:
     """
     Goes through every collection in a MongoDB except for the one named 'config',
@@ -25,7 +25,6 @@ def clear_swarm_space(mongodb_uri: str) -> None:
         user["current_chat_id"] = None
         user["current_node_id"] = None
         users_collection.update_one({"_id": user["_id"]}, {"$set": user})
-        print(f"User: {user['username']} with ID: {user['_id']}")
     print("Cleared all documents from swarmstar_interface_tests database")
 
 clear_swarm_space('mongodb://localhost:27017/')

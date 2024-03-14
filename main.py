@@ -3,32 +3,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
 
-from src.database.mongodb_wrapper import MongoDBWrapper
+from app.api.authentication.login import router as login_router
+from app.api.authentication.auth_token import router as auth_token_router
+from app.api.authentication.signup import router as signup_router
 
-from src.client.authentication.login import router as login_router
-from src.client.authentication.auth_token import router as auth_token_router
-from src.client.authentication.signup import router as signup_router
+from app.api.swarm.create_swarm import router as create_swarm_router
+from app.api.swarm.delete_swarm import router as delete_swarm_router
+from app.api.swarm.set_current_swarm import router as set_current_swarm_router
+from app.api.swarm.spawn_swarm import router as spawn_swarm_router
+from app.api.swarm.update_swarm import router as update_swarm_router
+from app.api.swarm.copy_swarm import router as copy_swarm_router
+from app.api.swarm.pause_swarm import router as pause_swarm_router
+from app.api.swarm.resume_swarm import router as resume_swarm_router
 
-from src.client.swarm.create_swarm import router as create_swarm_router
-from src.client.swarm.delete_swarm import router as delete_swarm_router
-from src.client.swarm.set_current_swarm import router as set_current_swarm_router
-from src.client.swarm.spawn_swarm import router as spawn_swarm_router
-from src.client.swarm.update_swarm import router as update_swarm_router
-from src.client.swarm.copy_swarm import router as copy_swarm_router
-from src.client.swarm.pause_swarm import router as pause_swarm_router
-from src.client.swarm.resume_swarm import router as resume_swarm_router
+from app.api.chat.set_current_chat import router as set_current_chat_router
+from app.api.chat.handle_user_message import router as handle_user_message_router
 
-from src.client.chat.set_current_chat import router as set_current_chat_router
-from src.client.chat.handle_user_message import router as handle_user_message_router
+from app.api.user.update_user import router as update_user_router
+from app.api.user.delete_user import router as delete_user_router
 
-from src.client.user.update_user import router as update_user_router
-from src.client.user.delete_user import router as delete_user_router
+from app.api.tree.set_current_node import router as set_current_node_router
 
-from src.client.tree.set_current_node import router as set_current_node_router
+from app.core.websocket_manager import manager
 
-from src.server.websocket_manager import manager
+from app.core.swarm_operation_queue import swarm_operation_queue_worker, swarm_operation_queue
 
-from src.server.swarm_operation_queue import swarm_operation_queue_worker, swarm_operation_queue
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,7 +43,7 @@ async def lifespan(app: FastAPI):
     await asyncio.sleep(1)  # Small delay to allow queue to empty, adjust as needed
     while not swarm_operation_queue.empty():
         await asyncio.sleep(0.1)  # Adjust sleep time as necessary
-
+    print("All operations processed, exiting")
 
 app = FastAPI(lifespan=lifespan, debug=True)
 
