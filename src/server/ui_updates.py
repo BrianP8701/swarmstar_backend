@@ -5,7 +5,7 @@ import asyncio
 
 from swarmstar.models import SwarmOperation
 
-from src.models import User, UserSwarm, SwarmOperation, SwarmMessage, SwarmstarWrapper
+from src.models import User, UserSwarm, SwarmMessage, SwarmstarWrapper
 from src.server.websocket_manager import manager
 
 

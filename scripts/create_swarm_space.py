@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from swarmstar.swarm.config import configure_swarm
+from swarmstar.config import configure_swarm
 
 load_dotenv()
 

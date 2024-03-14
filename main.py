@@ -69,8 +69,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-kv_database = MongoDBWrapper("mongodb://localhost:27017/", "swarmstar", "kv_store")
-
 app.include_router(login_router)
 app.include_router(auth_token_router)
 app.include_router(signup_router)

@@ -4,7 +4,7 @@ when the user presses the spawn button in the UI.
 """
 import os
 
-from swarmstar import spawn_swarm as swarmstar_spawn_swarm
+from swarmstar import Swarmstar
 from swarmstar.models import SwarmOperation
 
 from src.server.swarm_operation_queue import swarm_operation_queue
@@ -20,7 +20,8 @@ async def spawn_swarm(swarm_id: str, goal: str):
         swarm_config.id = swarm_id
         swarm_config.root_path = root_path
         
-        root_swarm_operation = swarmstar_spawn_swarm(swarm_config, goal)
+        swarmstar = Swarmstar(swarm_config)
+        root_swarm_operation = swarmstar.spawn_root(goal)
         swarm_operation_queue.put_nowait((swarm_id, root_swarm_operation))
     except Exception as e:
         print(e)

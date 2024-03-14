@@ -1,6 +1,7 @@
 from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+import traceback
 
 from src.utils.security import validate_token
 from src.models import UserSwarm, User
@@ -26,8 +27,9 @@ async def set_current_swarm(
     try:
         swarm_id = set_current_swarm_request.swarm_id
         user = User.get_user(user_id)
-        swarm_tree = user.set_current_swarm(swarm_id)
-        
+        user.set_current_swarm(swarm_id)
+        swarm_tree = UserSwarm.get_swarm_tree(swarm_id)
+
         if not swarm_id:
             return {"swarm": None, "user": User.get_user(user_id), "swarm_tree": None}
 
@@ -38,5 +40,7 @@ async def set_current_swarm(
         }
 
     except Exception as e:
+        traceback.print_tb(e.__traceback__)
+
         print(e)
         raise HTTPException(status_code=500, detail=str(e))

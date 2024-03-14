@@ -3,8 +3,6 @@ from typing import Dict, Optional, Any
 
 from src.database import MongoDBWrapper
 from src.models.user_profile import UserProfile
-from src.models.user_swarm import UserSwarm
-from src.models.swarmstar_wrapper import SwarmstarWrapper
 
 db = MongoDBWrapper()
 
@@ -42,21 +40,6 @@ class User(BaseModel):
 
     def set_current_swarm(self, swarm_id: str) -> Optional[Dict[str, Any]]:
         self.update({"current_swarm_id": swarm_id})
-        if swarm_id:
-            user_swarm = UserSwarm.get_user_swarm(swarm_id)
-            if user_swarm.spawned:
-                return SwarmstarWrapper.get_current_swarm_state_representation(swarm_id)
-            else:
-                return None
 
     def set_current_chat_id(self, node_id: str):
         self.update({"current_chat_id": node_id})
-
-    @classmethod 
-    def delete_user(cls, user_id: str):
-        user = cls.get_user(user_id)
-        username = user.username
-        for swarm_id in user.swarm_ids:
-            UserSwarm.delete_user_swarm(swarm_id)
-        db.delete("users", user_id)
-        db.delete("user_profiles", username)

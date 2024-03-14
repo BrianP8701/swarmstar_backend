@@ -1,11 +1,11 @@
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any, Union
 import copy
 
 from src.models.chat import BackendChat
 from src.models.swarmstar_wrapper import SwarmstarWrapper
 from src.database import MongoDBWrapper
-from src.models import User
+from src.models.user import User
 from src.utils.security import generate_uuid
 
 db = MongoDBWrapper()
@@ -77,8 +77,17 @@ class UserSwarm(BaseModel):
         self.nodes_with_active_chat.pop(node_id)
         self.update({"nodes_with_terminated_chat": self.nodes_with_terminated_chat, "nodes_with_active_chat": self.nodes_with_active_chat})
 
+    @staticmethod
+    def get_swarm_tree(swarm_id: str) -> Union[Dict[str, Any], None]:
+        if swarm_id:
+            user_swarm = UserSwarm.get_user_swarm(swarm_id)
+            if user_swarm.spawned:
+                return SwarmstarWrapper.get_current_swarm_state_representation(swarm_id)
+            else:
+                return None
+
     @classmethod
-    def copy_swarm(user_id: str, swarm_name: str, old_swarm_id: str):
+    def copy_swarm(user_id: str, swarm_name: str, old_swarm_id: str) -> 'UserSwarm':
         try:
             old_swarm = UserSwarm.get_user_swarm(old_swarm_id)
             swarm_copy = copy.deepcopy(old_swarm)

@@ -42,8 +42,7 @@ class SwarmstarWrapper:
 
     @staticmethod
     def get_current_swarm_state_representation(swarm_id: str) -> Dict[str, Any]:
-        swarm_config = SwarmstarWrapper.get_swarm_config(swarm_id)
-        swarm_state = SwarmstarWrapper.get_swarm_state(swarm_config)
+        swarm_state = SwarmstarWrapper.get_swarm_state(swarm_id)
         root_node_id = swarm_state[0]
         root_node = SwarmstarWrapper.get_swarm_node(root_node_id)
         swarm_state_representation = SwarmstarWrapper._convert_node_to_d3_tree_node_recursive(root_node)
