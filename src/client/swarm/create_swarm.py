@@ -2,8 +2,7 @@ from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.utils.security import validate_token
-from src.utils.database import create_empty_user_swarm, get_user, update_user
-from src.types import UserSwarm, User
+from src.models import UserSwarm, User
 
 router = APIRouter()
 
@@ -23,16 +22,16 @@ async def create_swarm(
 ):
     try:
         new_swarm_name = create_swarm_request.swarm_name
-        user = get_user(user_id)
+        user = User.get_user(user_id)
 
         if not new_swarm_name:
             raise HTTPException(status_code=400, detail="Swarm name is required")
         if new_swarm_name in user.swarm_ids.values():
             raise HTTPException(status_code=400, detail="Swarm name already exists")
 
-        user_swarm = create_empty_user_swarm(user_id, new_swarm_name)
+        user_swarm = UserSwarm.create_empty_user_swarm(user_id, new_swarm_name)
 
-        return {"swarm": user_swarm, "user": get_user(user_id)}
+        return {"swarm": user_swarm, "user": User.get_user(user_id)}
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))

@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from main import app
 import time
 
-from swarmstar.types import UserCommunicationOperation, SpawnOperation, TerminationOperation, NodeEmbryo
+from swarmstar.models import UserCommunicationOperation, SpawnOperation, TerminationOperation, NodeEmbryo
 
 from src.server.swarm_operation_queue import swarm_operation_queue
 from src.utils.database import create_empty_user_swarm, get_swarm_state, get_swarm_config, get_swarm_node

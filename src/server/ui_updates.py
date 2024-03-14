@@ -3,7 +3,7 @@ These are UI updates that are pushed from the swarm to the user's UI.
 """
 import asyncio
 
-from swarmstar.types import SwarmOperation
+from swarmstar.models import SwarmOperation
 
 from src.utils.database import (
     get_user, 

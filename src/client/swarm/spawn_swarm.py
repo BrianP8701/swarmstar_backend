@@ -2,10 +2,9 @@ from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel
 import asyncio
 
-from src.server.spawn_swarm import spawn_swarm as server_spawn_swarm
+from src.server.spawn_swarm import spawn_swarm as _spawn_swarm
 from src.utils.security import validate_token
-from src.utils.database import update_user_swarm_on_spawn, get_user_swarm
-from src.types import UserSwarm
+from src.models import UserSwarm
 
 router = APIRouter()
 
@@ -33,11 +32,12 @@ async def spawn_swarm(
         if not goal:
             raise HTTPException(status_code=400, detail="Swarm goal is required")
 
-        update_user_swarm_on_spawn(swarm_id, goal)
+        user_swarm = UserSwarm.get_user_swarm(swarm_id)
+        user_swarm = user_swarm.update_on_spawn(goal)
 
-        asyncio.create_task(server_spawn_swarm(swarm_id, goal))
+        asyncio.create_task(_spawn_swarm(swarm_id, goal))
 
-        return {"swarm": get_user_swarm(swarm_id)}
+        return {"swarm": user_swarm}
 
     except Exception as e:
         print(e)

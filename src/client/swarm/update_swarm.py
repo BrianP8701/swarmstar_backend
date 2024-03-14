@@ -3,8 +3,7 @@ from typing import Dict
 from pydantic import BaseModel
 
 from src.utils.security import validate_token
-from src.utils.database import get_user_swarm
-from src.types import UserSwarm
+from src.models import UserSwarm
 
 router = APIRouter()
 
@@ -31,7 +30,9 @@ async def update_swarm(
                 status_code=400, detail="Swarm updates and swarm_id is required"
             )
 
-        return {"swarm": get_user_swarm(swarm_id)}
+        user_swarm = UserSwarm.get_user_swarm(swarm_id)
+        user_swarm.update(swarm_updates)
+        return {"swarm": user_swarm}
 
     except Exception as e:
         print(e)

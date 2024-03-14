@@ -5,7 +5,7 @@ when the user presses the spawn button in the UI.
 import os
 
 from swarmstar import spawn_swarm as swarmstar_spawn_swarm
-from swarmstar.types import SwarmOperation
+from swarmstar.models import SwarmOperation
 
 from src.utils.database import get_swarm_config, get_user_swarm, update_user_swarm, get_swarm_operation
 from src.server.swarm_operation_queue import swarm_operation_queue

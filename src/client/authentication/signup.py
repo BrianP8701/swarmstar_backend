@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from src.utils.database import create_new_user_profile, create_new_user, get_user
 from src.utils.security import create_token
-from src.types import User
+from src.models import User, UserProfile
 
 
 class SignupRequest(BaseModel):
@@ -25,13 +24,13 @@ async def signup(signup_data: SignupRequest):
     password = signup_data.password
 
     try:
-        get_user(username)
+        UserProfile.get_user_profile(username)
         raise HTTPException(status_code=401, detail="Username already exists")
     except ValueError:
         pass
     
-    user_profile = create_new_user_profile(username, password)
-    user = create_new_user(user_profile)
+    user_profile = UserProfile.create_new_user_profile(username, password)
+    user = User.create_new_user(user_profile)
     token = create_token(user.id)
 
     return {"user": user, "token": token}

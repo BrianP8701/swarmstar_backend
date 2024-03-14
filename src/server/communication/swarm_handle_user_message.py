@@ -1,4 +1,4 @@
-from swarmstar.types import ActionOperation
+from swarmstar.models import ActionOperation
 from swarmstar.utils.swarmstar_space import save_swarm_operation
 
 from src.server.swarm_operation_queue import swarm_operation_queue

@@ -1,5 +1,5 @@
 import asyncio
-from swarmstar.types import UserCommunicationOperation, SpawnOperation, TerminationOperation, NodeEmbryo
+from swarmstar.models import UserCommunicationOperation, SpawnOperation, TerminationOperation, NodeEmbryo
 
 async def send_mock_operations():
     # Import the necessary objects from your main FastAPI app

@@ -2,9 +2,8 @@ from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.utils.security import validate_token
-from src.utils.database import get_user_swarm
-from src.server.spawn_swarm import resume_swarm as server_resume_swarm
-from src.types import UserSwarm
+from src.server.spawn_swarm import resume_swarm as _resume_swarm
+from src.models import UserSwarm
 
 router = APIRouter()
 
@@ -24,8 +23,8 @@ async def resume_swarm(
 ):
     try:
         swarm_id = resume_swarm_request.swarm_id
-        server_resume_swarm(swarm_id)
-        return {"swarm": get_user_swarm(swarm_id)}
+        _resume_swarm(swarm_id)
+        return {"swarm": UserSwarm.get_user_swarm(swarm_id)}
 
     except Exception as e:
         print(e)

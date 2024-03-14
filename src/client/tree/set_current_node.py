@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, List, Any
 
 from src.utils.security import validate_token
-from src.utils.database import get_user, get_swarm_node, get_swarm_config
+from src.models import User, SwarmstarWrapper
 
 router = APIRouter()
 
@@ -22,12 +22,12 @@ async def set_current_node(
 ):
     try:
         node_id = set_current_node_request.node_id
-        current_swarm_id = get_user(user_id).current_swarm_id
         
-        node = get_swarm_node(get_swarm_config(current_swarm_id), node_id)
+        node = SwarmstarWrapper.get_swarm_node(node_id)
+        node_logs = node.developer_logs
         
         return {
-            "node_logs": node.developer_logs
+            "node_logs": node_logs
         }
 
     except Exception as e:

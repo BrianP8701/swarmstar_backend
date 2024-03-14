@@ -3,8 +3,7 @@ from typing import Dict
 from pydantic import BaseModel
 
 from src.utils.security import validate_token
-from src.utils.database import update_user, get_user
-from src.types import User
+from src.models import User
 
 router = APIRouter()
 
@@ -27,8 +26,8 @@ async def update_user_values(
         if not user_updates:
             raise HTTPException(status_code=400, detail="User updates are required")
 
-        update_user(user_id, user_updates)
-        return {"user": get_user(user_id)}
+        User.update(user_id, user_updates)
+        return {"user": User.get_user(user_id)}
 
     except Exception as e:
         print(e)

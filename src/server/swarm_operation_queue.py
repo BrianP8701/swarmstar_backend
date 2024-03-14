@@ -7,7 +7,7 @@ replace this with a message queue.
 """
 import asyncio
 
-from swarmstar.types import SwarmOperation
+from swarmstar.models import SwarmOperation
 from swarmstar import execute_swarmstar_operation
 
 from src.server.communication.handle_swarm_message import handle_swarm_message

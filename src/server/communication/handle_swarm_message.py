@@ -1,4 +1,4 @@
-from swarmstar.types import UserCommunicationOperation
+from swarmstar.models import UserCommunicationOperation
 from swarmstar.utils.swarmstar_space import add_swarm_operation_id_to_swarm_history
 
 from src.utils.database import (

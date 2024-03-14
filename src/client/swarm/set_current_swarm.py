@@ -3,9 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from src.utils.security import validate_token
-from src.utils.database import get_user_swarm, get_user, get_current_swarm_state_representation
-from src.utils.database import set_current_swarm as server_set_current_swarm
-from src.types import UserSwarm, User
+from src.models import UserSwarm, User
 
 router = APIRouter()
 
@@ -27,14 +25,15 @@ async def set_current_swarm(
 ):
     try:
         swarm_id = set_current_swarm_request.swarm_id
-        swarm_tree = server_set_current_swarm(user_id, swarm_id)
+        user = User.get_user(user_id)
+        swarm_tree = user.set_current_swarm(swarm_id)
         
         if not swarm_id:
-            return {"swarm": None, "user": get_user(user_id)}
+            return {"swarm": None, "user": User.get_user(user_id), "swarm_tree": None}
 
         return {
-            "swarm": get_user_swarm(swarm_id), 
-            "user": get_user(user_id), 
+            "swarm": UserSwarm.get_user_swarm(swarm_id), 
+            "user": User.get_user(user_id), 
             "swarm_tree": swarm_tree
         }
 
