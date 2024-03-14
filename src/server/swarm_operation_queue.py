@@ -8,17 +8,11 @@ replace this with a message queue.
 import asyncio
 
 from swarmstar.models import SwarmOperation
-from swarmstar import execute_swarmstar_operation
+from swarmstar import Swarmstar
 
 from src.server.communication.handle_swarm_message import handle_swarm_message
-from src.utils.database import (
-    get_user_swarm,
-    append_queued_swarm_operation,
-    get_swarm_config,
-    get_swarm_operation,
-    does_chat_exist,
-    terminate_chat
-)
+from src.models import UserSwarm, User, SwarmstarWrapper
+from src.database import MongoDBWrapper
 from src.server.ui_updates import (
     send_swarm_update_to_ui,
     update_node_status_in_ui,
@@ -30,7 +24,7 @@ from src.server.ui_updates import (
     )
 
 swarm_operation_queue = asyncio.Queue()
-
+db = MongoDBWrapper()
 
 async def swarm_operation_queue_worker():
     """
@@ -40,13 +34,13 @@ async def swarm_operation_queue_worker():
     while True:
         try:
             swarm_id, operation = await swarm_operation_queue.get()
-            swarm = get_user_swarm(swarm_id)
+            swarm = UserSwarm.get_user_swarm(swarm_id)
             if swarm.active:
                 asyncio.create_task(
                     execute_swarm_operation(swarm_id, operation)
                 )
             else:
-                append_queued_swarm_operation(swarm_id, operation.id)
+                swarm.append_queued_swarm_operation(operation.id)
                 swarm_operation_queue.task_done()
         except Exception as e:
             print(f"\n\n\n Error in swarm_operation_queue_worker:\n{e}\n\n\n")
@@ -63,7 +57,9 @@ async def execute_swarm_operation(swarm_id: str, operation: SwarmOperation):
         if operation.operation_type == "user_communication":
             handle_swarm_message(swarm_id, operation)
         else:
-            next_operations = await execute_swarmstar_operation(get_swarm_config(swarm_id), operation)
+            swarm_config = SwarmstarWrapper.get_swarm_config(swarm_id)
+            swarmstar = Swarmstar(swarm_config)
+            next_operations = await swarmstar.execute(operation)
             if next_operations:
                 for next_operation in next_operations:
                     swarm_operation_queue.put_nowait((swarm_id, next_operation))
@@ -83,13 +79,14 @@ def update_ui_after_swarm_operation(swarm_id: str, operation_id: str) -> None:
     in real time if the user is using the interface.
     """
     try:
-        swarm_config = get_swarm_config(swarm_id)
-        swarm_operation = get_swarm_operation(swarm_config, operation_id)
-        user_id = get_user_swarm(swarm_id).owner
+        swarm_operation = SwarmstarWrapper.get_swarm_operation(operation_id)
+        user_id = UserSwarm.get_user_swarm(swarm_id).owner
         swarm_operation_type = swarm_operation.operation_type
+
         if swarm_operation_type == "terminate":
-            if does_chat_exist(swarm_operation.node_id):
-                terminate_chat(swarm_id, swarm_operation.node_id)
+            if db.exists("chats", swarm_operation.node_id):
+                user_swarm = UserSwarm.get_user_swarm(swarm_id)
+                user_swarm.terminate_chat(swarm_operation.node_id)
 
         if is_user_online(user_id):
             if is_user_in_swarm(user_id, swarm_id):                

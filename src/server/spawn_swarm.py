@@ -7,16 +7,15 @@ import os
 from swarmstar import spawn_swarm as swarmstar_spawn_swarm
 from swarmstar.models import SwarmOperation
 
-from src.utils.database import get_swarm_config, get_user_swarm, update_user_swarm, get_swarm_operation
 from src.server.swarm_operation_queue import swarm_operation_queue
-
+from src.models import UserSwarm, SwarmstarWrapper
 
 async def spawn_swarm(swarm_id: str, goal: str):
     """
     This is called when the user presses the spawn button
     """
     try:
-        swarm_config = get_swarm_config("default_config")
+        swarm_config = SwarmstarWrapper.get_swarm_config("default_config")
         root_path = find_empty_swarm_folder()
         swarm_config.id = swarm_id
         swarm_config.root_path = root_path
@@ -31,13 +30,11 @@ def resume_swarm(swarm_id: str):
     This is called when the user presses the resume button
     """
     try:
-        user_swarm = get_user_swarm(swarm_id)
-        swarm_config = get_swarm_config(swarm_id)
-        update_user_swarm(swarm_id, {"active": True})
+        user_swarm = UserSwarm.get_user_swarm(swarm_id)
         for operation in user_swarm.queued_swarm_operations_ids:
-            operation = get_swarm_operation(swarm_config, operation)
+            operation = SwarmstarWrapper.get_swarm_operation(operation)
             swarm_operation_queue.put_nowait((swarm_id, operation))
-        update_user_swarm(swarm_id, {"queued_swarm_operations_ids": []})
+        user_swarm.update({"queued_swarm_operations_ids": [], "active": True})
     except Exception as e:
         print(e)
 

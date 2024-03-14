@@ -70,6 +70,13 @@ class UserSwarm(BaseModel):
     def pause(self):
         self.update({"active": False})
 
+    def terminate_chat(self, node_id: str):
+        chat = BackendChat.get_chat(node_id)
+        chat.update({"alive": False})
+        self.nodes_with_terminated_chat[node_id] = chat.id
+        self.nodes_with_active_chat.pop(node_id)
+        self.update({"nodes_with_terminated_chat": self.nodes_with_terminated_chat, "nodes_with_active_chat": self.nodes_with_active_chat})
+
     @classmethod
     def copy_swarm(user_id: str, swarm_name: str, old_swarm_id: str):
         try:

@@ -1,15 +1,9 @@
 from swarmstar.models import UserCommunicationOperation
-from swarmstar.utils.swarmstar_space import add_swarm_operation_id_to_swarm_history
 
-from src.utils.database import (
-    does_chat_exist,
-    create_empty_chat,
-    create_swarm_message,
-    update_chat,
-    get_swarm_config
-)
-from src.types import SwarmMessage
+from src.models import SwarmMessage, BackendChat, SwarmstarWrapper
+from src.database import MongoDBWrapper
 
+db = MongoDBWrapper()
 
 def handle_swarm_message(
     swarm_id: str, user_comm_operation: UserCommunicationOperation
@@ -17,16 +11,16 @@ def handle_swarm_message(
     try:
         node_id = user_comm_operation.node_id
 
-        if not does_chat_exist(node_id):
-            create_empty_chat(swarm_id, user_comm_operation.node_id)
+        if not db.exists("chats", node_id):
+            chat = BackendChat.create_empty_chat(user_comm_operation.node_id)
 
         message: str = user_comm_operation.message
         message = SwarmMessage(role="ai", content=message)
-        create_swarm_message(node_id, message)
-        update_chat(node_id, {"user_communication_operation": user_comm_operation.model_dump()})
+        SwarmMessage.create(node_id, message)
+        chat.update({"user_communication_operation": user_comm_operation.model_dump()})
         
-        add_swarm_operation_id_to_swarm_history(
-            get_swarm_config(swarm_id), 
+        SwarmstarWrapper.add_swarm_operation_id_to_swarm_history(
+            swarm_id, 
             user_comm_operation.id
         )
                 

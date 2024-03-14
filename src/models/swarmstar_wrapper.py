@@ -33,6 +33,10 @@ class SwarmstarWrapper:
         SwarmOperation.insert_swarm_operation(operation)
 
     @staticmethod
+    def add_swarm_operation_id_to_swarm_history(swarm_id: str, operation_id: str) -> None:
+        SwarmHistory.add_swarm_operation_id_to_swarm_history(swarm_id, operation_id)
+
+    @staticmethod
     def delete_swarmstar_space(swarm_id: str) -> None:
         Swarmstar.delete_swarmstar_space(swarm_id)
 
