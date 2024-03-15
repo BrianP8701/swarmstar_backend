@@ -42,7 +42,7 @@ class BackendChat(BaseModel):
         return chat
 
     def append_message(self, message_id: str):
-        db.append("chats", self.id, {"message_ids": message_id})
+        db.append("chats", self.id, "message_ids", message_id)
         self.message_ids.append(message_id)
 
     def update(self, updated_values: dict):

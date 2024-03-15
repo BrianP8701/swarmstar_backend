@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any, Union
 import copy
 
-from app.models.chat import BackendChat
+from app.models.chat import BackendChat, SwarmMessage
 from app.models.swarmstar_wrapper import SwarmstarWrapper
 from app.database import MongoDBWrapper
 from app.models.user import User
@@ -48,7 +48,7 @@ class UserSwarm(BaseModel):
         return self
 
     def append_queued_swarm_operation(self, swarm_operation_id: str):
-        db.append("swarms", self.id, {"queued_swarm_operations_ids": swarm_operation_id})
+        db.append("swarms", self.id, "queued_swarm_operations_ids", swarm_operation_id)
         self.queued_swarm_operations_ids.append(swarm_operation_id)
 
     def remove_queued_swarm_operation(self, swarm_operation_id: str):
@@ -77,7 +77,7 @@ class UserSwarm(BaseModel):
     def terminate_chat(self, node_id: str):
         chat = BackendChat.get_chat(node_id)
         chat.update({"alive": False})
-        self.nodes_with_terminated_chat[node_id] = chat.id
+        self.nodes_with_terminated_chat[node_id] = self.nodes_with_active_chat[node_id]
         self.nodes_with_active_chat.pop(node_id)
         self.update({"nodes_with_terminated_chat": self.nodes_with_terminated_chat, "nodes_with_active_chat": self.nodes_with_active_chat})
 
@@ -96,67 +96,102 @@ class UserSwarm(BaseModel):
             old_swarm = UserSwarm.get_user_swarm(old_swarm_id)
             swarm_copy = copy.deepcopy(old_swarm)
             swarm_copy.id = generate_uuid("swarm")
-            swarm_copy.nodes_with_active_chat = {}
-            swarm_copy.nodes_with_terminated_chat = {}
             swarm_copy.name = swarm_name
 
             if swarm_copy.spawned:
                 old_swarm_state = ss.get_swarm_state(old_swarm_id)
                 old_swarm_history = ss.get_swarm_history(old_swarm_id)
-                
+
+                old_nodes_with_active_chat = old_swarm.nodes_with_active_chat
+                old_nodes_with_terminated_chat = old_swarm.nodes_with_terminated_chat
+
                 swarm_state = []
                 swarm_history = []
                 queued_swarm_operations_ids = []
                 nodes_with_active_chat = {}
                 nodes_with_terminated_chat = {}
-                
-                def copy_chat_nodes(node_ids, nodes_with_chat, swarm_state_container):
-                    for node_id in node_ids:
-                        old_chat = BackendChat.get_chat(node_id)
-                        old_node = ss.get_swarm_node(node_id)
-                        old_swarm_state.remove(node_id)
-                        node = copy.deepcopy(old_node)
-                        chat = copy.deepcopy(old_chat)
-                        node.id = generate_uuid("node")
-                        chat.id = node.id
-                        nodes_with_chat[node.id] = node.name
-                        swarm_state_container.append(node.id)
-                        ss.add_swarm_node(node)
-                        db.insert("chats", chat.id, chat.model_dump())
 
-                copy_chat_nodes(old_swarm.nodes_with_active_chat.keys(), nodes_with_active_chat, swarm_state)
-                copy_chat_nodes(old_swarm.nodes_with_terminated_chat.keys(), nodes_with_terminated_chat, swarm_state)
-                
-                for operation_id in old_swarm.queued_swarm_operations_ids:
-                    old_operation = ss.get_swarm_operation(operation_id)
-                    old_swarm_history.remove(operation_id)
-                    operation = copy.deepcopy(old_operation)
-                    operation.id = generate_uuid("operation")
-                    queued_swarm_operations_ids.append(operation.id)
-                    swarm_history.append(operation.id)
+                old_node_ids_to_new_node_ids = {}
+                old_operation_ids_to_new_operation_ids = {}
+
+                for old_node_id in old_swarm_state:
+                    old_node_ids_to_new_node_ids[old_node_id] = generate_uuid("node")
+                for old_operation_id in old_swarm_history:
+                    old_operation_ids_to_new_operation_ids[old_operation_id] = generate_uuid("operation")
+
+                for old_operation_id in old_swarm.queued_swarm_operations_ids:
+                    old_operation_ids_to_new_operation_ids[old_operation_id] = generate_uuid("operation")
+                    queued_swarm_operations_ids.append(old_operation_ids_to_new_operation_ids[old_operation_id])
+                    operation = ss.get_swarm_operation(old_operation_id)
+                    operation.id = old_operation_ids_to_new_operation_ids[old_operation_id]
+                    if operation.node_id:
+                        operation.node_id = old_node_ids_to_new_node_ids[operation.node_id]
+                    if operation.operation_type == "spawn":
+                        if operation.parent_node_id:
+                            operation.parent_node_id = old_node_ids_to_new_node_ids[operation.parent_node_id]
+                    elif operation.operation_type == "terminate":
+                        operation.terminator_node_id = old_node_ids_to_new_node_ids[operation.terminator_node_id]
                     ss.add_swarm_operation(operation)
-                
-                for node_id in old_swarm_state:
-                    old_node = ss.get_swarm_node(node_id)
+
+                for old_node_id in old_swarm_state:
+                    old_node = ss.get_swarm_node(old_node_id)
                     node = copy.deepcopy(old_node)
-                    node.id = generate_uuid("node")
+                    node.id = old_node_ids_to_new_node_ids[old_node_id]
+                    new_children_ids = []
+                    for child_id in node.children_ids:
+                        new_children_ids.append(old_node_ids_to_new_node_ids[child_id])
+                    node.children_ids = new_children_ids
+                    if node.parent_id:
+                        node.parent_id = old_node_ids_to_new_node_ids[node.parent_id]
                     swarm_state.append(node.id)
                     ss.add_swarm_node(node)
-                
-                for operation_id in old_swarm_history:
-                    old_operation = ss.get_swarm_operation(operation_id)
+                for old_operation_id in old_swarm_history:
+                    old_operation = ss.get_swarm_operation(old_operation_id)
                     operation = copy.deepcopy(old_operation)
-                    operation.id = generate_uuid("operation")
+                    operation.id = old_operation_ids_to_new_operation_ids[old_operation_id]
+                    if operation.node_id:
+                        operation.node_id = old_node_ids_to_new_node_ids[operation.node_id]
+                    if operation.operation_type == "spawn":
+                        if operation.parent_node_id:
+                            operation.parent_node_id = old_node_ids_to_new_node_ids[operation.parent_node_id]
+                    elif operation.operation_type == "terminate":
+                        operation.terminator_node_id = old_node_ids_to_new_node_ids[operation.terminator_node_id]
                     swarm_history.append(operation.id)
                     ss.add_swarm_operation(operation)
+
+                def copy_chats(old_node_ids_to_names: Dict[str, str], new_node_ids_to_names: Dict[str, str]):
+                    for old_node_id in old_node_ids_to_names.keys():
+                        old_chat = BackendChat.get_chat(old_node_id)
+                        chat = copy.deepcopy(old_chat)
+                        chat.id = old_node_ids_to_new_node_ids[old_node_id]
+                        new_node_ids_to_names[chat.id] = old_node_ids_to_names[old_node_id]
+                        chat.message_ids = []
+                        for old_message_id in old_chat.message_ids:
+                            old_message = SwarmMessage.get_message(old_message_id)
+                            message = copy.deepcopy(old_message)
+                            message.id = generate_uuid("message")
+                            message.create()
+                            chat.message_ids.append(message.id)
+                        if chat.user_communication_operation:
+                            new_user_comm_op_id = generate_uuid("operation")
+                            chat.user_communication_operation.id = new_user_comm_op_id
+                            chat.user_communication_operation.node_id = old_node_ids_to_new_node_ids[chat.user_communication_operation.node_id]
+                        db.insert("chats", chat.id, chat.model_dump())
+
+                copy_chats(old_nodes_with_active_chat, nodes_with_active_chat)
+                copy_chats(old_nodes_with_terminated_chat, nodes_with_terminated_chat)
                 
                 swarm_copy.nodes_with_active_chat = nodes_with_active_chat
                 swarm_copy.nodes_with_terminated_chat = nodes_with_terminated_chat
                 swarm_copy.queued_swarm_operations_ids = queued_swarm_operations_ids
 
-                db.insert("swarm_state", swarm_copy.id, {"data": swarm_state})
-                db.insert("swarm_history", swarm_copy.id, {"data": swarm_history})
+                SwarmstarWrapper.add_swarm_state(swarm_copy.id, swarm_state)
+                SwarmstarWrapper.add_swarm_history(swarm_copy.id, swarm_history)
                 
+                old_swarm_config = ss.get_swarm_config(old_swarm_id)
+                old_swarm_config.id = swarm_copy.id
+                SwarmstarWrapper.add_swarm_config(old_swarm_config)
+
             db.insert("swarms", swarm_copy.id, swarm_copy.model_dump(exclude={'id'}))
             user = User.get_user(user_id)
             user.swarm_ids[swarm_copy.id] = swarm_name

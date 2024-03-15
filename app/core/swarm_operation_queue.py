@@ -11,7 +11,7 @@ from swarmstar.models import SwarmOperation
 from swarmstar import Swarmstar
 
 from app.core.communication.handle_swarm_message import handle_swarm_message
-from app.models import UserSwarm, User, SwarmstarWrapper
+from app.models import UserSwarm, SwarmstarWrapper
 from app.database import MongoDBWrapper
 from app.core.ui_updates import (
     send_swarm_update_to_ui,
@@ -54,6 +54,7 @@ async def execute_swarm_operation(swarm_id: str, operation: SwarmOperation):
     This function will appropriately handle swarm operations.
     """
     try:
+        print(f"Executing swarm operation: {operation.id}")
         if operation.operation_type == "user_communication":
             handle_swarm_message(swarm_id, operation)
         else:

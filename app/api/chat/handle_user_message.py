@@ -2,7 +2,7 @@ from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel
 import asyncio
 
-from app.core.communication.swarm_handle_user_message import swarm_handle_user_message
+from app.core.communication.handle_user_message import swarm_handle_user_message
 from app.utils.security import validate_token
 from app.models import SwarmMessage, Chat, BackendChat, User, SwarmMessage
 
@@ -37,15 +37,10 @@ async def handle_user_message(
                 status_code=400, detail="Chat ID and message is required"
             )
 
-        message = SwarmMessage(**message)
-        message.save()
-        backend_chat = BackendChat.get_chat(chat_id)
-        backend_chat.append_message(message.id)
-
         user = User.get_user(user_id)
         
         asyncio.create_task(
-            swarm_handle_user_message(user.current_swarm_id, chat_id, message.id)
+            swarm_handle_user_message(user.current_swarm_id, chat_id, message)
         )
 
         return {"chat": Chat.get_chat(chat_id)}

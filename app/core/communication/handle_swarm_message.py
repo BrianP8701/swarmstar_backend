@@ -20,6 +20,8 @@ def handle_swarm_message(
         message: str = user_comm_operation.message
         message = SwarmMessage(role="ai", content=message)
         message.create()
+        chat = BackendChat.get_chat(node_id)
+        chat.append_message(message.id)
         chat.update({"user_communication_operation": user_comm_operation.model_dump()})
         
         SwarmstarWrapper.add_swarm_operation_id_to_swarm_history(

@@ -33,7 +33,7 @@ class User(BaseModel):
         for field, value in updated_values.items():
             setattr(self, field, value)
         return self
-    
+
     @staticmethod
     def set(user_id, updated_values: dict):
         db.set("users", user_id, updated_values)

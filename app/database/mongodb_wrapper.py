@@ -74,7 +74,10 @@ class MongoDBWrapper(KV_Database):
                 update_fields = {"version": new_version}
                 for field, value in updated_values.items():
                     if field not in current_document:
-                        raise KeyError(f"Field '{field}' does not exist in the document {key} in collection {category}.")
+                        document = self.get(category, key)
+                        for k, v in updated_values.items():
+                            document[k] = v
+                        self.set(category, key, document)
                     update_fields[field] = value
 
                 result = collection.update_one(
@@ -111,12 +114,15 @@ class MongoDBWrapper(KV_Database):
         collection = self.db[category]
         return collection.count_documents({"_id": key}) > 0
 
-    def append(self, category, key, value):
+    def append(self, category, key, inner_key, value):
         collection = self.db[category]
-        if collection.count_documents({"_id": key}) > 0:
-            collection.update_one({"_id": key}, {"$push": {"data": value}}, upsert=True)
+        result = collection.find_one({"_id": key})
+        if result:
+            if inner_key not in result:
+                collection.update_one({"_id": key}, {"$set": {inner_key: []}})
+            collection.update_one({"_id": key}, {"$push": {inner_key: value}})
         else:
-            self.insert(key, {"data": [value]})
+            self.insert(category, key, {inner_key: [value]})
 
     def remove_from_list(self, category, key, value):
         collection = self.db[category]
