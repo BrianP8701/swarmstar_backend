@@ -37,9 +37,7 @@ def delete_user_swarm(swarm_id: str):
         BackendChat.delete_chat(node_id)
     for node_id in user_swarm.nodes_with_terminated_chat:
         BackendChat.delete_chat(node_id)
-    print(1)
     db.delete("swarms", swarm_id)
-    print(2)
     user = User.get_user(user_swarm.owner)
     del user.swarm_ids[swarm_id]
     if user.current_swarm_id == swarm_id:

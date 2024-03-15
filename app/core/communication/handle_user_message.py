@@ -4,6 +4,7 @@ from swarmstar.models import ActionOperation
 
 from app.core.swarm_operation_queue import swarm_operation_queue
 from app.models import BackendChat, SwarmstarWrapper, SwarmMessage
+from app.core.ui_updates import append_message_to_chat_in_ui
 
 async def swarm_handle_user_message(swarm_id: str, node_id: str, message: Dict[str, str]):
     message = SwarmMessage(**message)
@@ -14,6 +15,7 @@ async def swarm_handle_user_message(swarm_id: str, node_id: str, message: Dict[s
     user_communication_operation = backend_chat.user_communication_operation
     context = user_communication_operation.context
     context.pop("chat_name", None)
+    append_message_to_chat_in_ui(swarm_id, message.id)
     
     return_operation = ActionOperation(
         node_id=backend_chat.id,

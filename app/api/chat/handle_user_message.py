@@ -4,7 +4,7 @@ import asyncio
 
 from app.core.communication.handle_user_message import swarm_handle_user_message
 from app.utils.security import validate_token
-from app.models import SwarmMessage, Chat, BackendChat, User, SwarmMessage
+from app.models import Chat, User
 
 router = APIRouter()
 

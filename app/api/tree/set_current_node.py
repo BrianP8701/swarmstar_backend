@@ -13,7 +13,7 @@ class SetCurrentNodeRequest(BaseModel):
 
 
 class SetCurrentNodeResponse(BaseModel):
-    node_logs: Optional[List[Dict[str, Any]]] = None
+    node_logs: Any = None
 
 @router.put("/tree/set_current_node", response_model=SetCurrentNodeResponse)
 async def set_current_node(

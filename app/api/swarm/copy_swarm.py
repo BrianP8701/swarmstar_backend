@@ -1,6 +1,7 @@
 from fastapi import Depends, APIRouter, HTTPException
 from pydantic import BaseModel
 import traceback
+from typing import Optional
 
 from app.utils.security import validate_token
 from app.models import UserSwarm, User, SwarmstarWrapper
@@ -17,6 +18,7 @@ class CopySwarmRequest(BaseModel):
 class CopySwarmResponse(BaseModel):
     swarm: UserSwarm
     user: User
+    swarm_tree: Optional[dict] = None
 
 
 @router.post("/swarm/copy_swarm", response_model=CopySwarmResponse)
@@ -34,8 +36,9 @@ async def create_swarm(
             raise HTTPException(status_code=400, detail="Swarm name already exists")
 
         user_swarm = UserSwarm.copy_swarm(user_id, new_swarm_name, old_swarm_id)
+        swarm_tree = UserSwarm.get_swarm_tree(user_swarm.id)
         
-        return {"swarm": user_swarm, "user": User.get_user(user_id)}
+        return {"swarm": user_swarm, "user": User.get_user(user_id), "swarm_tree": swarm_tree}
     except Exception as e:
         traceback.print_tb(e.__traceback__)
         print(e)
