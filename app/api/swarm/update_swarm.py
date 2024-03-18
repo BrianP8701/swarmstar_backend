@@ -30,7 +30,7 @@ async def update_swarm(
                 status_code=400, detail="Swarm updates and swarm_id is required"
             )
 
-        user_swarm = UserSwarm.get_user_swarm(swarm_id)
+        user_swarm = UserSwarm.get(swarm_id)
         user_swarm.update(swarm_updates)
         return {"swarm": user_swarm}
 

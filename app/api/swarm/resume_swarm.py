@@ -24,7 +24,7 @@ async def resume_swarm(
     try:
         swarm_id = resume_swarm_request.swarm_id
         _resume_swarm(swarm_id)
-        return {"swarm": UserSwarm.get_user_swarm(swarm_id)}
+        return {"swarm": UserSwarm.get(swarm_id)}
 
     except Exception as e:
         print(e)

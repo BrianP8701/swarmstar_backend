@@ -24,7 +24,7 @@ async def signup(signup_data: SignupRequest):
     password = signup_data.password
 
     try:
-        UserProfile.get_user_profile(username)
+        UserProfile.get(username)
         raise HTTPException(status_code=401, detail="Username already exists")
     except ValueError:
         pass

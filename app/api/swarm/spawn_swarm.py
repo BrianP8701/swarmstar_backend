@@ -32,7 +32,7 @@ async def spawn_swarm(
         if not goal:
             raise HTTPException(status_code=400, detail="Swarm goal is required")
 
-        user_swarm = UserSwarm.get_user_swarm(swarm_id)
+        user_swarm = UserSwarm.get(swarm_id)
         user_swarm.update_on_spawn(goal)
 
         asyncio.create_task(_spawn_swarm(swarm_id, goal))

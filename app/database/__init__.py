@@ -1,2 +1,2 @@
-from .kv_database import KV_Database
+from .abstract import KV_Database
 from .mongodb_wrapper import MongoDBWrapper

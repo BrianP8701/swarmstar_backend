@@ -14,7 +14,7 @@ class User(BaseModel):
     current_node_id: Optional[str] = None
 
     @classmethod
-    def get_user(cls, user_id: str):
+    def get(cls, user_id: str):
         user = db.get("users", user_id)
         return cls(**user)
 
@@ -24,26 +24,20 @@ class User(BaseModel):
         db.insert("users", user.id, user.model_dump(exclude={'id'}))
         return user
 
-    @staticmethod
-    def update(user_id: str, updated_values: dict):
-        db.update("users", user_id, updated_values)
-
     def update(self, updated_values: dict):
         db.update("users", self.id, updated_values)
-        for field, value in updated_values.items():
-            setattr(self, field, value)
-        return self
 
-    @staticmethod
-    def set(user_id, updated_values: dict):
-        db.set("users", user_id, updated_values)
+    def replace(self, updated_values: dict):
+        db.replace("users", self.id, updated_values)
 
     def set_current_swarm(self, swarm_id: str) -> Optional[Dict[str, Any]]:
-        self.update({"current_swarm_id": swarm_id})
+        user = User.get(self.id)
+        user.update({"current_swarm_id": swarm_id})
 
     def set_current_chat_id(self, node_id: str):
         self.update({"current_chat_id": node_id})
 
     def add_swarm(self, swarm_id: str, swarm_name: str):
-        self.swarm_ids[swarm_id] = swarm_name
-        self.update({"swarm_ids": self.swarm_ids})
+        user = User.get(self.id)
+        user.swarm_ids[swarm_id] = swarm_name
+        db.update("users", self.id, {"swarm_ids": user.swarm_ids})

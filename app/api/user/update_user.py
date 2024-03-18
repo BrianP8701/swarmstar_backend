@@ -27,7 +27,7 @@ async def update_user_values(
             raise HTTPException(status_code=400, detail="User updates are required")
 
         User.update(user_id, user_updates)
-        return {"user": User.get_user(user_id)}
+        return {"user": User.get(user_id)}
 
     except Exception as e:
         print(e)

@@ -22,7 +22,7 @@ async def pause_swarm(
 ):
     try:
         swarm_id = pause_swarm_request.swarm_id
-        user_swarm = UserSwarm.get_user_swarm(swarm_id)
+        user_swarm = UserSwarm.get(swarm_id)
         user_swarm.pause()
         return {"swarm": user_swarm}
 

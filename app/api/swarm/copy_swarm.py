@@ -4,9 +4,7 @@ import traceback
 from typing import Optional
 
 from app.utils.security import validate_token
-from app.models import UserSwarm, User, SwarmstarWrapper
-
-ss = SwarmstarWrapper()
+from app.models import UserSwarm, User
 
 router = APIRouter()
 
@@ -28,17 +26,17 @@ async def create_swarm(
     try:
         new_swarm_name = create_swarm_request.swarm_name
         old_swarm_id = create_swarm_request.old_swarm_id
-        user = User.get_user(user_id)
+        user = User.get(user_id)
 
         if not new_swarm_name:
             raise HTTPException(status_code=400, detail="Swarm name is required")
         if new_swarm_name in user.swarm_ids.values():
             raise HTTPException(status_code=400, detail="Swarm name already exists")
 
-        user_swarm = UserSwarm.copy_swarm(user_id, new_swarm_name, old_swarm_id)
-        swarm_tree = UserSwarm.get_swarm_tree(user_swarm.id)
+        user_swarm = UserSwarm.duplicate(user_id, new_swarm_name, old_swarm_id)
+        swarm_tree = UserSwarm.get_tree(user_swarm.id)
         
-        return {"swarm": user_swarm, "user": User.get_user(user_id), "swarm_tree": swarm_tree}
+        return {"swarm": user_swarm, "user": User.get(user_id), "swarm_tree": swarm_tree}
     except Exception as e:
         traceback.print_tb(e.__traceback__)
         print(e)

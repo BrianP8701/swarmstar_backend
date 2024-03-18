@@ -26,16 +26,16 @@ async def set_current_swarm(
 ):
     try:
         swarm_id = set_current_swarm_request.swarm_id
-        user = User.get_user(user_id)
+        user = User.get(user_id)
         user.set_current_swarm(swarm_id)
         swarm_tree = UserSwarm.get_swarm_tree(swarm_id)
 
         if not swarm_id:
-            return {"swarm": None, "user": User.get_user(user_id), "swarm_tree": None}
+            return {"swarm": None, "user": User.get(user_id), "swarm_tree": None}
 
         return {
-            "swarm": UserSwarm.get_user_swarm(swarm_id), 
-            "user": User.get_user(user_id), 
+            "swarm": UserSwarm.get(swarm_id), 
+            "user": User.get(user_id), 
             "swarm_tree": swarm_tree
         }
 

@@ -28,11 +28,11 @@ async def set_current_chat(
             raise HTTPException(status_code=400, detail="Node ID is required")
 
         try:
-            chat = Chat.get_chat(node_id)
+            chat = Chat.get(node_id)
         except:
             raise HTTPException(status_code=404, detail="Chat not found")
 
-        user = User.get_user(user_id)
+        user = User.get(user_id)
         user.set_current_chat_id(node_id)
 
         return {"chat": chat, "user": user}

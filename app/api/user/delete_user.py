@@ -11,7 +11,7 @@ router = APIRouter()
 @router.delete("/user/delete_user")
 async def delete_user(user_id: str = Depends(validate_token)):
     try:
-        User.delete_user(user_id)
+        User.delete(user_id)
 
     except Exception as e:
         print(e)

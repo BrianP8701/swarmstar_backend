@@ -11,7 +11,7 @@ class UserProfile(BaseModel):
     user_id: str
 
     @classmethod
-    def get_user_profile(cls, username: str) -> 'UserProfile':
+    def get(cls, username: str) -> 'UserProfile':
         return cls(**db.get("user_profiles", username))
 
     @classmethod
@@ -24,5 +24,5 @@ class UserProfile(BaseModel):
         return user_profile
 
     @staticmethod
-    def delete_user_profile( username: str) -> None:
+    def delete( username: str) -> None:
         db.delete("user_profiles", username)

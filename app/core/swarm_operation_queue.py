@@ -11,7 +11,7 @@ from swarmstar.models import SwarmOperation
 from swarmstar import Swarmstar
 
 from app.core.communication.handle_swarm_message import handle_swarm_message
-from app.models import UserSwarm, SwarmstarWrapper
+from app.models import UserSwarm
 from app.database import MongoDBWrapper
 from app.core.ui_updates import (
     send_swarm_update_to_ui,
@@ -34,7 +34,7 @@ async def swarm_operation_queue_worker():
     while True:
         try:
             swarm_id, operation = await swarm_operation_queue.get()
-            swarm = UserSwarm.get_user_swarm(swarm_id)
+            swarm = UserSwarm.get(swarm_id)
             if swarm.active:
                 asyncio.create_task(
                     execute_swarm_operation(swarm_id, operation)
@@ -58,8 +58,7 @@ async def execute_swarm_operation(swarm_id: str, operation: SwarmOperation):
         if operation.operation_type == "user_communication":
             handle_swarm_message(swarm_id, operation)
         else:
-            swarm_config = SwarmstarWrapper.get_swarm_config(swarm_id)
-            swarmstar = Swarmstar(swarm_config)
+            swarmstar = Swarmstar(swarm_id)
             next_operations = await swarmstar.execute(operation)
             if next_operations:
                 for next_operation in next_operations:
@@ -80,13 +79,13 @@ def update_ui_after_swarm_operation(swarm_id: str, operation_id: str) -> None:
     in real time if the user is using the interface.
     """
     try:
-        swarm_operation = SwarmstarWrapper.get_swarm_operation(operation_id)
-        user_id = UserSwarm.get_user_swarm(swarm_id).owner
+        swarm_operation = SwarmOperation.get(operation_id)
+        user_id = UserSwarm.get(swarm_id).owner
         swarm_operation_type = swarm_operation.operation_type
 
         if swarm_operation_type == "terminate":
             if db.exists("chats", swarm_operation.node_id):
-                user_swarm = UserSwarm.get_user_swarm(swarm_id)
+                user_swarm = UserSwarm.get(swarm_id)
                 user_swarm.terminate_chat(swarm_operation.node_id)
 
         if is_user_online(user_id):

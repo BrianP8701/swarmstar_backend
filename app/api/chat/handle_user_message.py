@@ -37,13 +37,13 @@ async def handle_user_message(
                 status_code=400, detail="Chat ID and message is required"
             )
 
-        user = User.get_user(user_id)
+        user = User.get(user_id)
         
         asyncio.create_task(
             swarm_handle_user_message(user.current_swarm_id, chat_id, message)
         )
 
-        return {"chat": Chat.get_chat(chat_id)}
+        return {"chat": Chat.get(chat_id)}
 
     except Exception as e:
         print(e)

@@ -3,9 +3,9 @@ These are UI updates that are pushed from the swarm to the user's UI.
 """
 import asyncio
 
-from swarmstar.models import SwarmOperation
+from swarmstar.models import SwarmOperation, SwarmNode
 
-from app.models import User, UserSwarm, SwarmMessage, SwarmstarWrapper
+from app.models import User, UserSwarm, SwarmMessage
 from app.core.websocket_manager import manager
 
 
@@ -13,17 +13,17 @@ def is_user_online(user_id: str) -> bool:
     return manager.is_connected(user_id)
 
 def is_user_in_swarm(user_id: str, swarm_id: str) -> bool:
-    return User.get_user(user_id).current_swarm_id == swarm_id
+    return User.get(user_id).current_swarm_id == swarm_id
 
 def is_user_in_chat(user_id: str, chat_id: str) -> bool:
-    return User.get_user(user_id).current_chat_id == chat_id
+    return User.get(user_id).current_chat_id == chat_id
 
 def send_swarm_update_to_ui(swarm_id: str) -> None:
     """
     After any change to the UserSwarm, send the updated UserSwarm to the UI.
     """
     try:
-        user_swarm = UserSwarm.get_user_swarm(swarm_id)
+        user_swarm = UserSwarm.get(swarm_id)
         user_id = user_swarm.owner
         asyncio.create_task(
             manager.send_personal_message(
@@ -42,12 +42,12 @@ def append_message_to_chat_in_ui(swarm_id: str, message_id: str) -> None:
     After an ai message is created, append it to the chat in the UI.
     """
     try:
-        user_id = UserSwarm.get_user_swarm(swarm_id).owner
+        user_id = UserSwarm.get(swarm_id).owner
         asyncio.create_task(
             manager.send_personal_message(
                 {
                     "type": "append_message_to_chat",
-                    "data": {"message": SwarmMessage.get_message(message_id).model_dump()},
+                    "data": {"message": SwarmMessage.get(message_id).model_dump()},
                 },
                 user_id,
             )
@@ -60,11 +60,11 @@ def add_new_nodes_to_tree_in_ui(swarm_id: str, spawn_operation_id: str) -> None:
     After a spawn operation, add the new node to the tree in the UI.
     """
     try:
-        spawn_operation = SwarmstarWrapper.get_swarm_operation(spawn_operation_id)
-        user_id = UserSwarm.get_user_swarm(swarm_id).owner
+        spawn_operation = SwarmOperation.get(spawn_operation_id)
+        user_id = UserSwarm.get(swarm_id).owner
         
         parent_id = spawn_operation.parent_node_id
-        spawned_node = SwarmstarWrapper.get_swarm_node(spawn_operation.node_id)
+        spawned_node = SwarmNode.get(spawn_operation.node_id)
 
         add_node_payload = {
             "parent_node_id" : parent_id,
@@ -92,8 +92,8 @@ def add_new_nodes_to_tree_in_ui(swarm_id: str, spawn_operation_id: str) -> None:
 
 def update_node_status_in_ui(swarm_id: str, operation_id: str) -> None:
     try:
-        operation = SwarmstarWrapper.get_swarm_operation(operation_id)
-        user_id = UserSwarm.get_user_swarm(swarm_id).owner
+        operation = SwarmOperation.get(operation_id)
+        user_id = UserSwarm.get(swarm_id).owner
         operation_type = operation.operation_type
         if operation_type == "spawn":
             node_id = operation.parent_node_id
@@ -111,7 +111,7 @@ def update_node_status_in_ui(swarm_id: str, operation_id: str) -> None:
                 )
             )
         elif operation_type == "terminate":
-            node = SwarmstarWrapper.get_swarm_node(node_id)
+            node = SwarmNode.get(node_id)
             if not node.alive:
                 asyncio.create_task(
                     manager.send_personal_message(

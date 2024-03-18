@@ -2,6 +2,9 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any, Union
 import copy
 
+from swarmstar import Swarmstar
+from swarmstar.models import SwarmOperation, SwarmState, SwarmHistory, SwarmNode
+
 from app.models.chat import BackendChat, SwarmMessage
 from app.models.swarmstar_wrapper import SwarmstarWrapper
 from app.database import MongoDBWrapper
@@ -24,12 +27,12 @@ class UserSwarm(BaseModel):
     nodes_with_terminated_chat: Dict[str, str] = {}  # Dict of node ids to chat names that have terminated their chat
 
     @classmethod
-    def get_user_swarm(cls, swarm_id: str) -> 'UserSwarm':
+    def get(cls, swarm_id: str) -> 'UserSwarm':
         return cls(**db.get("swarms", swarm_id))
 
-    @classmethod
-    def create_empty_user_swarm(cls, user_id: str, name: str):
-        user_swarm = cls(
+    @staticmethod
+    def create_empty_user_swarm(user_id: str, name: str) -> 'UserSwarm':
+        user_swarm = UserSwarm(
             id=generate_uuid("swarm"),
             name=name,
             owner=user_id
@@ -37,15 +40,8 @@ class UserSwarm(BaseModel):
         db.insert("swarms", user_swarm.id, user_swarm.model_dump(exclude={'id'}))
         return user_swarm
 
-    @staticmethod
-    def update(swarm_id: str, updated_values: dict):
-        db.update("swarms", swarm_id, updated_values)
-
-    def update(self, updated_values: dict) -> 'UserSwarm':
+    def update(self, updated_values: dict):
         db.update("swarms", self.id, updated_values)
-        for field, value in updated_values.items():
-            setattr(self, field, value)
-        return self
 
     def append_queued_swarm_operation(self, swarm_operation_id: str):
         db.append("swarms", self.id, "queued_swarm_operations_ids", swarm_operation_id)
@@ -62,20 +58,17 @@ class UserSwarm(BaseModel):
     def update_on_spawn(self, goal: str):
         self.update({"goal": goal, "spawned": True, "active": True, "complete": False})
 
-    def deactivate(self):
-        self.update({"active": False})
-
-    def activate(self):
-        self.update({"active": True})
-
-    def set_complete(self):
-        self.update({"complete": True})
-
     def pause(self):
         self.update({"active": False})
 
+    def resume(self):
+        self.update({"active": True})
+
+    def mark_as_complete(self):
+        self.update({"complete": True})
+
     def terminate_chat(self, node_id: str):
-        chat = BackendChat.get_chat(node_id)
+        chat = BackendChat.get(node_id)
         chat.update({"alive": False})
         self.nodes_with_terminated_chat[node_id] = self.nodes_with_active_chat[node_id]
         self.nodes_with_active_chat.pop(node_id)
@@ -84,23 +77,23 @@ class UserSwarm(BaseModel):
     @staticmethod
     def get_swarm_tree(swarm_id: str) -> Union[Dict[str, Any], None]:
         if swarm_id:
-            user_swarm = UserSwarm.get_user_swarm(swarm_id)
+            user_swarm = UserSwarm.get(swarm_id)
             if user_swarm.spawned:
                 return SwarmstarWrapper.get_current_swarm_state_representation(swarm_id)
             else:
                 return None
 
     @staticmethod
-    def copy_swarm(user_id: str, swarm_name: str, old_swarm_id: str) -> 'UserSwarm':
+    def duplicate(user_id: str, swarm_name: str, old_swarm_id: str) -> 'UserSwarm':
         try:
-            old_swarm = UserSwarm.get_user_swarm(old_swarm_id)
+            old_swarm = UserSwarm.get(old_swarm_id)
             swarm_copy = copy.deepcopy(old_swarm)
             swarm_copy.id = generate_uuid("swarm")
             swarm_copy.name = swarm_name
 
             if swarm_copy.spawned:
-                old_swarm_state = ss.get_swarm_state(old_swarm_id)
-                old_swarm_history = ss.get_swarm_history(old_swarm_id)
+                old_swarm_state = SwarmState.get(old_swarm_id)
+                old_swarm_history = SwarmHistory.get_swarm_history(old_swarm_id)
 
                 old_nodes_with_active_chat = old_swarm.nodes_with_active_chat
                 old_nodes_with_terminated_chat = old_swarm.nodes_with_terminated_chat
@@ -122,7 +115,7 @@ class UserSwarm(BaseModel):
                 for old_operation_id in old_swarm.queued_swarm_operations_ids:
                     old_operation_ids_to_new_operation_ids[old_operation_id] = generate_uuid("operation")
                     queued_swarm_operations_ids.append(old_operation_ids_to_new_operation_ids[old_operation_id])
-                    operation = ss.get_swarm_operation(old_operation_id)
+                    operation = SwarmOperation.get(old_operation_id)
                     operation.id = old_operation_ids_to_new_operation_ids[old_operation_id]
                     if operation.node_id:
                         operation.node_id = old_node_ids_to_new_node_ids[operation.node_id]
@@ -131,10 +124,10 @@ class UserSwarm(BaseModel):
                             operation.parent_node_id = old_node_ids_to_new_node_ids[operation.parent_node_id]
                     elif operation.operation_type == "terminate":
                         operation.terminator_node_id = old_node_ids_to_new_node_ids[operation.terminator_node_id]
-                    ss.add_swarm_operation(operation)
+                    SwarmOperation.save(operation)
 
                 for old_node_id in old_swarm_state:
-                    old_node = ss.get_swarm_node(old_node_id)
+                    old_node = SwarmNode.get(old_node_id)
                     node = copy.deepcopy(old_node)
                     node.id = old_node_ids_to_new_node_ids[old_node_id]
                     new_children_ids = []
@@ -144,9 +137,9 @@ class UserSwarm(BaseModel):
                     if node.parent_id:
                         node.parent_id = old_node_ids_to_new_node_ids[node.parent_id]
                     swarm_state.append(node.id)
-                    ss.add_swarm_node(node)
+                    SwarmNode.save(node)
                 for old_operation_id in old_swarm_history:
-                    old_operation = ss.get_swarm_operation(old_operation_id)
+                    old_operation = SwarmOperation.get(old_operation_id)
                     operation = copy.deepcopy(old_operation)
                     operation.id = old_operation_ids_to_new_operation_ids[old_operation_id]
                     if operation.node_id:
@@ -157,11 +150,11 @@ class UserSwarm(BaseModel):
                     elif operation.operation_type == "terminate":
                         operation.terminator_node_id = old_node_ids_to_new_node_ids[operation.terminator_node_id]
                     swarm_history.append(operation.id)
-                    ss.add_swarm_operation(operation)
+                    SwarmHistory.append(swarm_copy.id, operation.id)
 
                 def copy_chats(old_node_ids_to_names: Dict[str, str], new_node_ids_to_names: Dict[str, str]):
                     for old_node_id in old_node_ids_to_names.keys():
-                        old_chat = BackendChat.get_chat(old_node_id)
+                        old_chat = BackendChat.get(old_node_id)
                         chat = copy.deepcopy(old_chat)
                         chat.id = old_node_ids_to_new_node_ids[old_node_id]
                         new_node_ids_to_names[chat.id] = old_node_ids_to_names[old_node_id]
@@ -170,7 +163,7 @@ class UserSwarm(BaseModel):
                             old_message = SwarmMessage.get_message(old_message_id)
                             message = copy.deepcopy(old_message)
                             message.id = generate_uuid("message")
-                            message.create()
+                            message.save()
                             chat.message_ids.append(message.id)
                         if chat.user_communication_operation:
                             new_user_comm_op_id = generate_uuid("operation")
@@ -185,15 +178,11 @@ class UserSwarm(BaseModel):
                 swarm_copy.nodes_with_terminated_chat = nodes_with_terminated_chat
                 swarm_copy.queued_swarm_operations_ids = queued_swarm_operations_ids
 
-                SwarmstarWrapper.add_swarm_state(swarm_copy.id, swarm_state)
-                SwarmstarWrapper.add_swarm_history(swarm_copy.id, swarm_history)
-                
-                old_swarm_config = ss.get_swarm_config(old_swarm_id)
-                old_swarm_config.id = swarm_copy.id
-                SwarmstarWrapper.add_swarm_config(old_swarm_config)
+                SwarmState.save(swarm_copy.id, swarm_state)
+                SwarmHistory.save(swarm_copy.id, swarm_history)
 
             db.insert("swarms", swarm_copy.id, swarm_copy.model_dump(exclude={'id'}))
-            user = User.get_user(user_id)
+            user = User.get(user_id)
             user.swarm_ids[swarm_copy.id] = swarm_name
             user.current_swarm_id = swarm_copy.id
             User.set(user_id, {"swarm_ids": user.swarm_ids, "current_swarm_id": user.current_swarm_id})
@@ -201,9 +190,9 @@ class UserSwarm(BaseModel):
         except Exception as e:
             raise e
 
-    @classmethod
-    def delete_user_swarm(cls, swarm_id: str):
-        user_swarm = cls.get_user_swarm(swarm_id)
+    @staticmethod
+    def delete_user_swarm(swarm_id: str):
+        user_swarm = UserSwarm.get(swarm_id)
         
         for node_id in user_swarm.nodes_with_active_chat:
             BackendChat.delete_chat(node_id)
@@ -211,10 +200,10 @@ class UserSwarm(BaseModel):
             BackendChat.delete_chat(node_id)
         db.delete("swarms", swarm_id)
         
-        user = User.get_user(user_swarm.owner)
+        user = User.get(user_swarm.owner)
         del user.swarm_ids[swarm_id]
         if user.current_swarm_id == swarm_id:
             user.current_swarm_id = None
         user.update({"swarm_ids": user.swarm_ids, "current_swarm_id": user.current_swarm_id})
         
-        SwarmstarWrapper.delete_swarmstar_space(swarm_id)
+        Swarmstar.delete_swarmstar_space(swarm_id)

@@ -22,7 +22,7 @@ async def create_swarm(
 ):
     try:
         new_swarm_name = create_swarm_request.swarm_name
-        user = User.get_user(user_id)
+        user = User.get(user_id)
 
         if not new_swarm_name:
             raise HTTPException(status_code=400, detail="Swarm name is required")
@@ -33,7 +33,7 @@ async def create_swarm(
         user.add_swarm(user_swarm.id, new_swarm_name)
         user.set_current_swarm(user_swarm.id)
         
-        return {"swarm": user_swarm, "user": User.get_user(user_id)}
+        return {"swarm": user_swarm, "user": User.get(user_id)}
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))

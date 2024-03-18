@@ -5,23 +5,20 @@ when the user presses the spawn button in the UI.
 import os
 
 from swarmstar import Swarmstar
+
 from swarmstar.models import SwarmOperation
 
 from app.core.swarm_operation_queue import swarm_operation_queue
-from app.models import UserSwarm, SwarmstarWrapper
+from app.models import UserSwarm
 
 async def spawn_swarm(swarm_id: str, goal: str):
     """
     This is called when the user presses the spawn button
     """
     try:
-        swarm_config = SwarmstarWrapper.get_swarm_config("default_config")
-        root_path = find_empty_swarm_folder()
-        swarm_config.id = swarm_id
-        swarm_config.root_path = root_path
         
-        swarmstar = Swarmstar(swarm_config)
-        root_swarm_operation = swarmstar.spawn_root(goal)
+        swarmstar = Swarmstar(swarm_id)
+        root_swarm_operation = swarmstar.spawn(goal)
         swarm_operation_queue.put_nowait((swarm_id, root_swarm_operation))
     except Exception as e:
         print(e)
@@ -31,9 +28,9 @@ def resume_swarm(swarm_id: str):
     This is called when the user presses the resume button
     """
     try:
-        user_swarm = UserSwarm.get_user_swarm(swarm_id)
-        for operation in user_swarm.queued_swarm_operations_ids:
-            operation = SwarmstarWrapper.get_swarm_operation(operation)
+        user_swarm = UserSwarm.get(swarm_id)
+        for operation_id in user_swarm.queued_swarm_operations_ids:
+            operation = SwarmOperation.get(operation_id)
             swarm_operation_queue.put_nowait((swarm_id, operation))
         user_swarm.update({"queued_swarm_operations_ids": [], "active": True})
     except Exception as e:
